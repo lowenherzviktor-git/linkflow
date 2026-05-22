@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<!--
+  LINKFLOW — sign in / sign up
+  Single page that toggles between modes. Reads ?mode=signup to default to signup.
+  On success: redirects to /app/.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+
+  <title>Sign in · Linkflow</title>
+  <meta name="description" content="Sign in or create your Linkflow account.">
+
+  <link rel="icon" type="image/png" href="https://l1advisory.com/wp-content/uploads/2025/06/logo-small-black-transparent.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<header class="lf-topbar">
+  <div class="lf-topbar-inner">
+    <a class="lf-topbar-brand" href="/">Link<em>flow</em></a>
+    <nav class="lf-topbar-nav">
+      <a href="/">Home</a>
+    </nav>
+  </div>
+</header>
+
+<div class="lf-page">
+
+<section class="lf-section lf-light">
+  <div class="lf-wrap lf-wrap--narrow">
+    <div class="lf-eyebrow" id="lf-eyebrow">Sign in</div>
+    <h2 class="lf-h2" id="lf-heading">Welcome back.</h2>
+    <p class="lf-intro" id="lf-intro">
+      Sign in to access your Linkflow workspace.
+    </p>
+
+    <div class="lf-form-shell">
+      <div class="lf-form-toggle" role="tablist">
+        <button type="button" id="lf-tab-signin" class="is-active" role="tab">Sign in</button>
+        <button type="button" id="lf-tab-signup" role="tab">Create account</button>
+      </div>
+
+      <form class="lf-form" id="lf-auth-form" autocomplete="on">
+        <label>Email
+          <input type="email" name="email" required autocomplete="email">
+        </label>
+        <label>Password
+          <input type="password" name="password" required minlength="8" autocomplete="current-password">
+        </label>
+        <button type="submit" class="lf-btn" style="margin-top: 8px;" id="lf-submit">Sign in →</button>
+        <p class="lf-form-note" id="lf-note">Use the password you set when you created your account.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer class="lf-footer">
+  <div class="lf-footer-cols">
+    <div class="lf-footer-col">
+      <p style="margin-bottom: 12px; color: #fafaf7; font-weight: 600; letter-spacing: .02em; font-size: 17px;">Linkflow</p>
+      <p>An AI-powered LinkedIn operating system.</p>
+    </div>
+    <div class="lf-footer-col">
+      <h4>Product</h4>
+      <a href="/">Home</a>
+    </div>
+    <div class="lf-footer-col">
+      <h4>Legal</h4>
+      <a href="https://l1advisory.com/impressum/">Impressum</a>
+      <a href="https://l1advisory.com/datenschutz/">Privacy policy</a>
+    </div>
+  </div>
+  <div class="lf-footer-bottom">
+    <span>© 2026 Linkflow.</span>
+    <span>An L1 Advisory product.</span>
+  </div>
+</footer>
+
+<script src="/assets/supabase-client.js"></script>
+<script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  let mode = params.get('mode') === 'signup' ? 'signup' : 'signin';
+
+  const eyebrow = document.getElementById('lf-eyebrow');
+  const heading = document.getElementById('lf-heading');
+  const intro = document.getElementById('lf-intro');
+  const tabSignin = document.getElementById('lf-tab-signin');
+  const tabSignup = document.getElementById('lf-tab-signup');
+  const form = document.getElementById('lf-auth-form');
+  const submit = document.getElementById('lf-submit');
+  const note = document.getElementById('lf-note');
+  const passwordInput = form.querySelector('input[name="password"]');
+
+  function applyMode() {
+    if (mode === 'signup') {
+      eyebrow.textContent = 'Early access';
+      heading.innerHTML = 'Create your <em>Linkflow</em> account.';
+      intro.textContent = 'Use a real email. You can switch to magic-link or OAuth later.';
+      submit.textContent = 'Create account →';
+      note.textContent = 'Minimum 8 characters. We never email-blast our users.';
+      note.classList.remove('lf-form-error');
+      passwordInput.setAttribute('autocomplete', 'new-password');
+      tabSignup.classList.add('is-active');
+      tabSignin.classList.remove('is-active');
+    } else {
+      eyebrow.textContent = 'Sign in';
+      heading.textContent = 'Welcome back.';
+      intro.textContent = 'Sign in to access your Linkflow workspace.';
+      submit.textContent = 'Sign in →';
+      note.textContent = 'Use the password you set when you created your account.';
+      note.classList.remove('lf-form-error');
+      passwordInput.setAttribute('autocomplete', 'current-password');
+      tabSignin.classList.add('is-active');
+      tabSignup.classList.remove('is-active');
+    }
+  }
+
+  tabSignin.addEventListener('click', function () { mode = 'signin'; applyMode(); });
+  tabSignup.addEventListener('click', function () { mode = 'signup'; applyMode(); });
+
+  applyMode();
+
+  // Already signed in? Bounce to /app/.
+  lfGetSession().then(function (session) {
+    if (session) window.location.replace('/app/');
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const email = String(fd.get('email') || '').trim();
+    const password = String(fd.get('password') || '');
+
+    submit.disabled = true;
+    const originalText = submit.textContent;
+    submit.textContent = mode === 'signup' ? 'Creating account…' : 'Signing in…';
+    note.classList.remove('lf-form-error');
+
+    try {
+      let result;
+      if (mode === 'signup') {
+        result = await lfSupabase.auth.signUp({ email, password });
+      } else {
+        result = await lfSupabase.auth.signInWithPassword({ email, password });
+      }
+
+      if (result.error) throw result.error;
+
+      // signUp with email confirmation enabled returns session=null until user confirms.
+      if (mode === 'signup' && !result.data.session) {
+        form.outerHTML = '<div class="lf-form-success">Check your inbox to confirm your email, then come back and sign in.</div>';
+        return;
+      }
+
+      window.location.replace('/app/');
+    } catch (err) {
+      submit.disabled = false;
+      submit.textContent = originalText;
+      note.textContent = (err && err.message) ? err.message : "Something went wrong. Try again.";
+      note.classList.add('lf-form-error');
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

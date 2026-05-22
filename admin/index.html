@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<!--
+  LINKFLOW — admin panel
+  Gated by lfRequireAdmin(). Lists profiles, lets admins toggle is_admin.
+  RLS is the real boundary: a non-admin's JWT cannot read this list or flip the bit.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+
+  <title>Admin · Linkflow</title>
+
+  <link rel="icon" type="image/png" href="https://l1advisory.com/wp-content/uploads/2025/06/logo-small-black-transparent.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    .lf-cloaked { visibility: hidden; }
+  </style>
+</head>
+<body class="lf-cloaked">
+
+<header class="lf-topbar">
+  <div class="lf-topbar-inner">
+    <a class="lf-topbar-brand" href="/app/">Link<em>flow</em></a>
+    <nav class="lf-topbar-nav">
+      <a href="/app/">Dashboard</a>
+      <a href="/admin/">Admin</a>
+      <span class="lf-topbar-user" id="lf-user-email"></span>
+      <a href="#" id="lf-signout">Sign out</a>
+    </nav>
+  </div>
+</header>
+
+<div class="lf-page">
+
+<section class="lf-section">
+  <div class="lf-wrap">
+    <div class="lf-eyebrow">Admin · Users</div>
+    <h2 class="lf-h2">Registered accounts.</h2>
+    <p class="lf-intro">
+      Everyone who has created a Linkflow account. Toggle admin to promote or demote teammates.
+      You can't demote yourself.
+    </p>
+
+    <p class="lf-form-note" id="lf-error" style="display: none;"></p>
+
+    <div id="lf-list-container">
+      <div class="lf-empty">Loading…</div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer class="lf-footer">
+  <div class="lf-footer-bottom">
+    <span>© 2026 Linkflow.</span>
+    <span>An L1 Advisory product.</span>
+  </div>
+</footer>
+
+<script src="/assets/supabase-client.js"></script>
+<script>
+(async function () {
+  const profile = await lfRequireAdmin();
+  if (!profile) return;
+
+  document.getElementById('lf-user-email').textContent = profile.email || '';
+  document.getElementById('lf-signout').addEventListener('click', function (e) {
+    e.preventDefault();
+    lfSignOut('/');
+  });
+
+  document.body.classList.remove('lf-cloaked');
+
+  const errorEl = document.getElementById('lf-error');
+  const container = document.getElementById('lf-list-container');
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.classList.add('lf-form-error');
+    errorEl.style.display = '';
+  }
+  function clearError() {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toISOString().slice(0, 10);
+  }
+
+  async function loadUsers() {
+    clearError();
+    const { data, error } = await lfSupabase
+      .from('profiles')
+      .select('id, email, created_at, is_admin')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      showError('Could not load users: ' + error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="lf-empty">No users yet.</div>';
+      return;
+    }
+
+    const rows = data.map(function (u) {
+      const isSelf = u.id === profile.id;
+      const adminCell = u.is_admin
+        ? '<span class="lf-admin-tag">Admin</span>'
+        : '<span style="color: var(--lf-muted);">User</span>';
+      const buttonLabel = u.is_admin ? 'Demote' : 'Promote';
+      const disabled = isSelf ? 'disabled title="You can\'t change your own admin status."' : '';
+      return ''
+        + '<tr>'
+        + '  <td>' + escapeHtml(u.email || '') + (isSelf ? ' <span style="color: var(--lf-muted); font-size: 12px;">(you)</span>' : '') + '</td>'
+        + '  <td>' + fmtDate(u.created_at) + '</td>'
+        + '  <td>' + adminCell + '</td>'
+        + '  <td><button data-id="' + u.id + '" data-next="' + (!u.is_admin) + '" ' + disabled + '>' + buttonLabel + '</button></td>'
+        + '</tr>';
+    }).join('');
+
+    container.innerHTML = ''
+      + '<table class="lf-table">'
+      + '  <thead><tr><th>Email</th><th>Joined</th><th>Role</th><th></th></tr></thead>'
+      + '  <tbody>' + rows + '</tbody>'
+      + '</table>';
+
+    container.querySelectorAll('button[data-id]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const id = btn.getAttribute('data-id');
+        const next = btn.getAttribute('data-next') === 'true';
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+        const { error } = await lfSupabase
+          .from('profiles')
+          .update({ is_admin: next })
+          .eq('id', id);
+        if (error) {
+          showError('Update failed: ' + error.message);
+          btn.disabled = false;
+          btn.textContent = next ? 'Promote' : 'Demote';
+          return;
+        }
+        await loadUsers();
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  loadUsers();
+})();
+</script>
+
+</body>
+</html>

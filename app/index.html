@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+  LINKFLOW — user dashboard shell
+  Gated by lfRequireAuth(). Three placeholder modules for v1.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+
+  <title>Dashboard · Linkflow</title>
+
+  <link rel="icon" type="image/png" href="https://l1advisory.com/wp-content/uploads/2025/06/logo-small-black-transparent.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* Hide content until auth gate passes to avoid flash of unauthenticated content. */
+    .lf-cloaked { visibility: hidden; }
+  </style>
+</head>
+<body class="lf-cloaked">
+
+<header class="lf-topbar">
+  <div class="lf-topbar-inner">
+    <a class="lf-topbar-brand" href="/app/">Link<em>flow</em></a>
+    <nav class="lf-topbar-nav">
+      <a href="/app/">Dashboard</a>
+      <a href="/admin/" id="lf-nav-admin" style="display: none;">Admin</a>
+      <span class="lf-topbar-user" id="lf-user-email"></span>
+      <a href="#" id="lf-signout">Sign out</a>
+    </nav>
+  </div>
+</header>
+
+<div class="lf-page">
+
+<section class="lf-section">
+  <div class="lf-wrap">
+    <div class="lf-eyebrow">Workspace</div>
+    <h2 class="lf-h2">Welcome to Linkflow. <em>Early access.</em></h2>
+    <p class="lf-intro">
+      Modules below are scaffolded. Real functionality ships in the coming weeks. If you've got
+      strong opinions about what to build first, reply to your signup email.
+    </p>
+
+    <div class="lf-modules">
+      <div class="lf-module">
+        <div class="lf-module-label">Outreach</div>
+        <h3>Targeted outbound, personal at scale.</h3>
+        <p>Build prospect lists, sequence messages in your voice, route hot replies into your pipeline.</p>
+        <span class="lf-module-status">Coming soon</span>
+      </div>
+      <div class="lf-module">
+        <div class="lf-module-label">Content</div>
+        <h3>Distribution that compounds.</h3>
+        <p>Plan, draft, schedule. Track which posts move the needle and which ones don't.</p>
+        <span class="lf-module-status">Coming soon</span>
+      </div>
+      <div class="lf-module">
+        <div class="lf-module-label">Engagement</div>
+        <h3>Be present where it matters.</h3>
+        <p>Surface posts worth engaging with. Reply with substance. Stay top-of-mind.</p>
+        <span class="lf-module-status">Coming soon</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer class="lf-footer">
+  <div class="lf-footer-bottom">
+    <span>© 2026 Linkflow.</span>
+    <span>An L1 Advisory product.</span>
+  </div>
+</footer>
+
+<script src="/assets/supabase-client.js"></script>
+<script>
+(async function () {
+  const session = await lfRequireAuth();
+  if (!session) return;
+
+  document.getElementById('lf-user-email').textContent = session.user.email || '';
+
+  const profile = await lfGetProfile();
+  if (profile && profile.is_admin) {
+    document.getElementById('lf-nav-admin').style.display = '';
+  }
+
+  document.getElementById('lf-signout').addEventListener('click', function (e) {
+    e.preventDefault();
+    lfSignOut('/');
+  });
+
+  document.body.classList.remove('lf-cloaked');
+})();
+</script>
+
+</body>
+</html>
