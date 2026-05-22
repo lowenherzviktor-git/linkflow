@@ -4,9 +4,8 @@
    Expects window.supabase from the @supabase/supabase-js UMD CDN bundle.
    ========================================================================== */
 
-// TODO: paste real values from Supabase project (Settings → API)
-const LF_SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
-const LF_SUPABASE_ANON_KEY = 'YOUR-PUBLIC-ANON-KEY';
+const LF_SUPABASE_URL = 'https://kiljqtaypdplgxtbhfqp.supabase.co';
+const LF_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpbGpxdGF5cGRwbGd4dGJoZnFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzE4NzcsImV4cCI6MjA5NTA0Nzg3N30.i8YqmVWZLXvP0at4R9YhOTCe31T6WDrlEhDezRmtric';
 
 const lfSupabase = window.supabase.createClient(LF_SUPABASE_URL, LF_SUPABASE_ANON_KEY);
 
